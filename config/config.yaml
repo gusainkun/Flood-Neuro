@@ -1,0 +1,9 @@
+# Main configuration for the Flood Forecasting System
+paths:
+  raw: "data/raw/"
+  processed: "data/processed/"
+  features: "data/features/"
+  models: "outputs/models/"
+  geospatial: "data/geospatial/"
+
+current_location: "uttarkashi"

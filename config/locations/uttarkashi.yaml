@@ -1,0 +1,8 @@
+# Location Profile for Uttarkashi
+name: "Uttarkashi"
+river_name: "Bhagirathi River"
+map_center: [30.726, 78.441]  # Latitude, Longitude
+zoom_level: 14
+
+boundary_file: "boundaries/uttarkashi_wards.geojson"
+historical_data: "raw/uttarkashi_monsoon_2025.csv"
