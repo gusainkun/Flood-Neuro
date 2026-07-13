@@ -42,23 +42,49 @@ class BoundaryLoader:
 
         return parsed_wards
 
+    def load_basins(self) -> list:
+        """Loads and parses the topographic river basin polygons for dynamic hazard mapping."""
+        config = load_config()
+        root = get_project_root()
+
+        relative_basin_path = config["location_details"]["basin_file"]
+        absolute_basin_path = root / "data" / "geospatial" / relative_basin_path
+
+        if not absolute_basin_path.exists():
+            raise FileNotFoundError(f"Basin configuration file not found at: {absolute_basin_path}")
+
+        with open(absolute_basin_path, "r", encoding="utf-8") as f:
+            geojson_data = json.load(f)
+
+        parsed_basins = []
+        for feature in geojson_data.get("features", []):
+            properties = feature.get("properties", {})
+            geometry = feature.get("geometry", {})
+
+            basin_name = properties.get("basin_name", "Unknown Basin Segment")
+            threshold = properties.get("flood_threshold_m", 0.0)
+
+            raw_coords = geometry.get("coordinates", [[]])[0]
+            swapped_coords = [(coord[1], coord[0]) for coord in raw_coords]
+
+            parsed_basins.append({
+                "name": basin_name,
+                "threshold_m": threshold,
+                "coordinates": swapped_coords
+            })
+
+        return parsed_basins
+
 
 if __name__ == "__main__":
-    print("Running GIS Boundary Loader Test")
+    print("Running GIS Boundary and Basin Loader Test")
     try:
         loader = BoundaryLoader()
         wards = loader.load_boundaries()
+        basins = loader.load_basins()
 
-        print("GIS boundaries loaded and parsed successfully.")
+        print("GIS boundaries and basins loaded successfully.")
         print(f"Total wards loaded: {len(wards)}")
-
-        print("\nWard Details:")
-        for ward in wards:
-            print(f"Name: {ward['name']}")
-            print(f"Threshold: {ward['threshold_m']} meters")
-            print(f"Coordinates Count: {len(ward['coordinates'])}")
-            print(f"First coordinate pair: {ward['coordinates'][0]}")
-            print(f"Description: {ward['description']}")
-            print("-" * 45)
+        print(f"Total topographic basin contours loaded: {len(basins)}")
     except Exception as e:
-        print(f"Error during boundary loading: {e}")
+        print(f"Error during loading: {e}")

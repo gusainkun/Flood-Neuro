@@ -34,34 +34,7 @@ class MainWindow(ctk.CTk):
 
         self.boundary_loader = BoundaryLoader()
         self.wards = self.boundary_loader.load_boundaries()
-
-        # Pre-defined topographic flood basins flanking the Bhagirathi River
-        self.basins = [
-            {
-                "name": "Inner Basin",
-                "threshold_m": 1.0,
-                "coordinates": [
-                    (30.728, 78.432), (30.726, 78.438), (30.725, 78.441), (30.727, 78.446), (30.729, 78.451),
-                    (30.728, 78.451), (30.726, 78.446), (30.724, 78.441), (30.725, 78.438), (30.727, 78.432)
-                ]
-            },
-            {
-                "name": "Mid Basin",
-                "threshold_m": 3.0,
-                "coordinates": [
-                    (30.730, 78.432), (30.728, 78.438), (30.727, 78.441), (30.729, 78.446), (30.731, 78.451),
-                    (30.726, 78.451), (30.724, 78.446), (30.722, 78.441), (30.723, 78.438), (30.725, 78.432)
-                ]
-            },
-            {
-                "name": "Outer Basin",
-                "threshold_m": 5.0,
-                "coordinates": [
-                    (30.732, 78.432), (30.730, 78.438), (30.729, 78.441), (30.731, 78.446), (30.733, 78.451),
-                    (30.724, 78.451), (30.722, 78.446), (30.720, 78.441), (30.721, 78.438), (30.723, 78.432)
-                ]
-            }
-        ]
+        self.basins = self.boundary_loader.load_basins()
 
         # Interactive zoning state variables
         self.drawing_mode = False
@@ -73,6 +46,7 @@ class MainWindow(ctk.CTk):
         self.title("Local Flood Forecasting and Evacuation System")
         self.geometry("1250x720")
 
+        # Build Top Menu Bar
         self._build_menu()
 
         self.bind("<Control-z>", lambda event: self._undo_last_point())
@@ -94,21 +68,25 @@ class MainWindow(ctk.CTk):
     def _build_menu(self):
         menu_bar = tk.Menu(self)
 
+        # File Menu
         file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Upload Data", command=self._handle_upload)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self._on_closing)
         menu_bar.add_cascade(label="File", menu=file_menu)
 
+        # Edit Menu
         edit_menu = tk.Menu(menu_bar, tearoff=0)
         edit_menu.add_command(label="Undo Last Point", command=self._undo_last_point, accelerator="Ctrl+Z")
         edit_menu.add_separator()
         edit_menu.add_command(label="Clear Active Zone", command=self._clear_drawing, accelerator="Esc")
         menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
+        # View Menu (Placeholder)
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="View", menu=view_menu)
 
+        # Tools Menu
         tools_menu = tk.Menu(menu_bar, tearoff=0)
         tools_menu.add_command(label="Start Zoning Ward", command=self._start_drawing_ward)
         tools_menu.add_command(label="Undo Last Point", command=self._undo_last_point)
@@ -118,6 +96,7 @@ class MainWindow(ctk.CTk):
         tools_menu.add_command(label="Manage Wards...", command=self._open_manage_wards_window)
         menu_bar.add_cascade(label="Tools", menu=tools_menu)
 
+        # Help Menu
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About System", command=self._show_about_dialog)
         menu_bar.add_cascade(label="Help", menu=help_menu)
@@ -308,9 +287,9 @@ class MainWindow(ctk.CTk):
 
         self.analytics_frame = ctk.CTkFrame(self.dashboard_pane, corner_radius=0, fg_color="transparent")
         self.analytics_frame.grid_rowconfigure(0, weight=1)
-        self.analytics_frame.grid_columnconfigure(0, weight=2)  # Ward Table (wider)
-        self.analytics_frame.grid_columnconfigure(1, weight=1)  # Depth Legend Panel
-        self.analytics_frame.grid_columnconfigure(2, weight=2)  # Matplotlib Graph (wider)
+        self.analytics_frame.grid_columnconfigure(0, weight=2)
+        self.analytics_frame.grid_columnconfigure(1, weight=1)
+        self.analytics_frame.grid_columnconfigure(2, weight=2)
 
         # Left side: Current Situation (Ward Status Table)
         self.table_frame = ctk.CTkFrame(self.analytics_frame, corner_radius=10)
@@ -327,7 +306,7 @@ class MainWindow(ctk.CTk):
         self.table_scroll.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         self._build_ward_status_rows()
 
-        # Middle side: Flood Depth Legend Panel (Point 1 & 2 integration)
+        # Middle side: Flood Depth Legend Panel
         self.legend_frame = ctk.CTkFrame(self.analytics_frame, corner_radius=10)
         self.legend_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
@@ -435,9 +414,9 @@ class MainWindow(ctk.CTk):
         self.map_widget.delete_all_polygon()
         self.map_polygons = {}
 
-        # 1. First, draw the continuous physical inundation layers under the administrative boundaries
+        # 1. First, draw the decoupled topographic flood inundation layers from GeoJSON
         if predicted_level is not None:
-            # We iterate backwards (from outer to inner) so deeper contours draw on top of shallower ones
+            # Sort basins so smaller, deeper layers draw on top of larger, shallower ones
             for basin in reversed(self.basins):
                 threshold = basin["threshold_m"]
                 depth = predicted_level - threshold
@@ -445,7 +424,7 @@ class MainWindow(ctk.CTk):
                 if depth <= 0:
                     continue  # Basin is dry
 
-                # Determine inundation hazard color based on calculated water depth
+                # Determine color based on water depth matching your scientific reference legend
                 if depth < 1.0:
                     fill = "#27AE60"  # Green (Shallow)
                     outline = "#1E8449"

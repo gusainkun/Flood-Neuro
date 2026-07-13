@@ -5,4 +5,5 @@ map_center: [30.726, 78.441]  # Latitude, Longitude
 zoom_level: 14
 
 boundary_file: "boundaries/uttarkashi_wards.geojson"
+basin_file: "boundaries/uttarkashi_basins.geojson"  # New decoupled basin file reference
 historical_data: "raw/uttarkashi_monsoon_2025.csv"
